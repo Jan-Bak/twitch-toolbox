@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - feature/*
+  pull_request:
+    branches:
+      - main
+      - dev
+      - feature/*
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v6
+        with:
+            node-version: 24
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Setup Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with: 
+          workspaces: './src-tauri -> target'
+      - name: '[FE] Install dependencies'
+        run: npm ci
+      - name: '[FE] Lint'
+        run: npm run lint
+      - name: '[FE] Type check'
+        run: npm run typecheck
+      - name: '[FE] Tests'
+        run: npm test
+      - name: '[Client] Build'
+        run: npm run tauri build
