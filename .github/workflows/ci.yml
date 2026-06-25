@@ -20,20 +20,20 @@ jobs:
       - name: Set up Node.js 24
         uses: actions/setup-node@v6
         with:
-            node-version: 24
+          node-version: 24
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Setup Rust Cache
         uses: Swatinem/rust-cache@v2
-        with: 
-          workspaces: './src-tauri -> target'
-      - name: '[FE] Install dependencies'
+        with:
+          workspaces: "./src-tauri -> target"
+      - name: "[FE] Install dependencies"
         run: npm ci
-      - name: '[FE] Lint'
+      - name: "[FE] Lint"
         run: npm run lint
-      - name: '[FE] Type check'
+      - name: "[FE] Type check"
         run: npm run typecheck
-      - name: '[FE] Tests'
+      - name: "[FE] Tests"
         run: npm test
-      - name: '[Client] Build'
+      - name: "[Client] Build"
         run: npm run tauri build
