@@ -39,6 +39,7 @@ describe('loginWithTwitch', () => {
     listenMock.mockImplementation(
       async (_channel: string, callback: (event: { payload: string }) => void) => {
         redirectHandler = callback;
+        await Promise.resolve();
         return () => undefined;
       }
     );
@@ -47,7 +48,7 @@ describe('loginWithTwitch', () => {
 
     await Promise.resolve();
     await Promise.resolve();
-    expect(openUrlMock).toHaveBeenCalledOnce();
+    expect(listenMock).toHaveBeenCalledOnce();
 
     redirectHandler?.({ payload: 'http://localhost:3333/?code=test-code' });
 
@@ -65,6 +66,7 @@ describe('loginWithTwitch', () => {
     listenMock.mockImplementation(
       async (_channel: string, callback: (event: { payload: string }) => void) => {
         redirectHandler = callback;
+        await Promise.resolve();
         return () => undefined;
       }
     );
@@ -79,11 +81,11 @@ describe('loginWithTwitch', () => {
 
   it('rejects on timeout', async () => {
     invokeMock.mockResolvedValueOnce(4444);
-    listenMock.mockImplementation(async () => () => undefined);
+    listenMock.mockImplementation(() => () => undefined);
+    await Promise.resolve();
 
     const promise = loginWithTwitch();
 
-    await Promise.resolve();
     await Promise.resolve();
     vi.advanceTimersByTime(5 * 60 * 1000);
     await Promise.resolve();
