@@ -1,14 +1,79 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+use std::env;
+use tauri::{command, Emitter, Window};
+use tauri_plugin_oauth::start_with_config;
+
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+pub struct TwitchTokenResponse {
+    access_token: String,
+    refresh_token: Option<String>,
+    token_type: String,
+    scope: Option<Vec<String>>,
+}
+
+// Komenda: startuje localhost server i zwraca port
+#[command]
+async fn start_oauth_server(window: Window) -> Result<u16, String> {
+    let config = tauri_plugin_oauth::OauthConfig {
+        ports: Some(vec![3333, 3334, 3335]),
+        response: Some(
+            "<html><body><h2>User authenticated successfully. You can close this tab.</h2><script>setTimeout(() => window.close(), 300);</script></body></html>".into(),
+        ),
+    };
+
+    start_with_config(config, move |url| {
+        let _ = window.emit("twitch-oauth-redirect", url);
+    })
+    .map_err(|e| e.to_string())
+}
+
+// Komenda: wymiana code na access_token przy użyciu client_secret po stronie Rust
+#[command]
+async fn exchange_twitch_code(code: String, port: u16) -> Result<TwitchTokenResponse, String> {
+    let client = reqwest::Client::new();
+    let client_id = env::var("TWITCH_CLIENT_ID")
+        .map_err(|_| "TWITCH_CLIENT_ID is not set".to_string())?;
+    let client_secret = env::var("TWITCH_CLIENT_SECRET")
+        .map_err(|_| "TWITCH_CLIENT_SECRET is not set".to_string())?;
+
+    let params = [
+        ("client_id", client_id.as_str()),
+        ("client_secret", client_secret.as_str()),
+        ("code", code.as_str()),
+        ("grant_type", "authorization_code"),
+        ("redirect_uri", &format!("http://localhost:{}", port)),
+    ];
+
+    let response = client
+        .post("https://id.twitch.tv/oauth2/token")
+        .form(&params)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.map_err(|e| e.to_string())?;
+
+        return Err(format!("Twitch token exchange failed ({status}): {body}"));
+    }
+
+    response
+        .json::<TwitchTokenResponse>()
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let _ = dotenvy::from_filename(".env.local");
+    let _ = dotenvy::dotenv();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![
+            start_oauth_server,
+            exchange_twitch_code,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
