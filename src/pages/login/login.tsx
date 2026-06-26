@@ -18,18 +18,19 @@ const Login = () => {
   const [error, setError] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
-  const handleLogin = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const token = await loginWithTwitch();
-      // Zapisz token np. do Zustand store albo tauri-plugin-store
-      setToken(token);
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setLoading(false);
-    }
+  const handleLogin = () => {
+    void (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = await loginWithTwitch();
+        setToken(token);
+      } catch (e) {
+        setError(String(e));
+      } finally {
+        setLoading(false);
+      }
+    })();
   };
 
   if (token) {

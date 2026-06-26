@@ -25,30 +25,38 @@ const loginWithTwitch = async (): Promise<string> => {
   const authUrl = `https://id.twitch.tv/oauth2/authorize?${params}`;
 
   const token = await new Promise<string>((resolve, reject) => {
-    const timeout = setTimeout(
-      () => {
-        reject(new Error('OAuth timeout'));
-      },
-      5 * 60 * 1000 // 5mins
-    );
-
     let unlisten: (() => void) | undefined;
 
-    const cleanup = () => {
-      clearTimeout(timeout);
+    let cleanup = () => {
       unlisten?.();
       unlisten = undefined;
     };
 
-    void (async () => {
-      unlisten = await listen<string>('twitch-oauth-redirect', async (event) => {
+    const timeoutPromise = new Promise<never>((_, rejectTimeout) => {
+      const timeoutId = window.setTimeout(
+        () => {
+          cleanup();
+          rejectTimeout(new Error('OAuth timeout'));
+        },
+        5 * 60 * 1000
+      );
+
+      const originalCleanup = cleanup;
+      cleanup = () => {
+        window.clearTimeout(timeoutId);
+        originalCleanup();
+      };
+    });
+
+    const redirectPromise = new Promise<string>((resolveRedirect, rejectRedirect) => {
+      const handleRedirect = async (event: { payload: string }) => {
         const url = new URL(event.payload);
         const code = url.searchParams.get('code');
         const error = url.searchParams.get('error');
 
         if (error || !code) {
           cleanup();
-          reject(new Error(error ?? 'Missing auth code in redirect URL'));
+          rejectRedirect(new Error(error ?? 'Missing auth code in redirect URL'));
           return;
         }
 
@@ -59,18 +67,26 @@ const loginWithTwitch = async (): Promise<string> => {
           });
 
           cleanup();
-          resolve(tokenData.access_token);
+          resolveRedirect(tokenData.access_token);
         } catch (e) {
           cleanup();
-          reject(e);
+          rejectRedirect(e instanceof Error ? e : new Error(String(e)));
         }
-      });
+      };
 
-      openUrl(authUrl);
-    })().catch((e) => {
-      cleanup();
-      reject(e);
+      void (async () => {
+        unlisten = await listen<string>('twitch-oauth-redirect', (event) => {
+          void handleRedirect(event);
+        });
+
+        void openUrl(authUrl);
+      })().catch((e) => {
+        cleanup();
+        rejectRedirect(e instanceof Error ? e : new Error(String(e)));
+      });
     });
+
+    void Promise.race([redirectPromise, timeoutPromise]).then(resolve, reject);
   });
 
   return token;
