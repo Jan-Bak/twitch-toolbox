@@ -12,6 +12,7 @@ import TwitchIcon from '@/components/icons/twitch-icon';
 import { loginWithTwitch } from '@/lib/twitchAuth';
 import { useState } from 'react';
 import { Alert } from '@/components/ui/alert';
+import Auth from '../auth/auth';
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
@@ -34,11 +35,7 @@ const Login = () => {
   };
 
   if (token) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        authenticated! Token: {token}
-      </div>
-    );
+    return <Auth />;
   }
 
   return (
