@@ -10,7 +10,7 @@ pub struct TwitchTokenResponse {
     scope: Option<Vec<String>>,
 }
 
-// Komenda: startuje localhost server i zwraca port
+
 #[command]
 async fn start_oauth_server(window: Window) -> Result<u16, String> {
     let config = tauri_plugin_oauth::OauthConfig {
@@ -26,7 +26,7 @@ async fn start_oauth_server(window: Window) -> Result<u16, String> {
     .map_err(|e| e.to_string())
 }
 
-// Komenda: wymiana code na access_token przy użyciu client_secret po stronie Rust
+
 #[command]
 async fn exchange_twitch_code(code: String, port: u16) -> Result<TwitchTokenResponse, String> {
     let client = reqwest::Client::new();

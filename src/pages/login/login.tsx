@@ -12,20 +12,17 @@ import TwitchIcon from '@/components/icons/twitch-icon';
 import { loginWithTwitch } from '@/lib/twitchAuth';
 import { useState } from 'react';
 import { Alert } from '@/components/ui/alert';
-import Auth from '../auth/auth';
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [token, setToken] = useState<string | null>(null);
 
   const handleLogin = () => {
     void (async () => {
       setLoading(true);
       setError(null);
       try {
-        const token = await loginWithTwitch();
-        setToken(token);
+        await loginWithTwitch();
       } catch (e) {
         setError(String(e));
       } finally {
@@ -33,10 +30,6 @@ const Login = () => {
       }
     })();
   };
-
-  if (token) {
-    return <Auth />;
-  }
 
   return (
     <div className="flex items-center justify-center min-h-screen">

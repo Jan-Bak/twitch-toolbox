@@ -6,7 +6,7 @@ import prettier from 'eslint-config-prettier';
 import vitest from '@vitest/eslint-plugin';
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'src-tauri'] },
+  { ignores: ['dist', 'node_modules', 'src-tauri', 'src/routeTree.gen.ts'] },
 
   js.configs.recommended,
 

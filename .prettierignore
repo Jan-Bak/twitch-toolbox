@@ -38,3 +38,6 @@ CHANGELOG.md
 # examples /gen directory
 examples/**/src-tauri/gen
 bench/**/src-tauri/gen
+
+#Tanstack router generated file
+src/routeTree.gen.ts
