@@ -1,12 +1,14 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { openUrl } from '@tauri-apps/plugin-opener';
+import useUser, { type UserProfile } from '@/stores/user';
 
 const CLIENT_ID = import.meta.env.VITE_TWITCH_CLIENT_ID;
 
 const SCOPES = ['user:read:email', 'channel:read:subscriptions'];
 
 const loginWithTwitch = async (): Promise<string> => {
+  const { setAuthState } = useUser.getState();
   if (!CLIENT_ID) {
     throw new Error('VITE_TWITCH_CLIENT_ID is not set');
   }
@@ -66,8 +68,19 @@ const loginWithTwitch = async (): Promise<string> => {
             port,
           });
 
+          const token = tokenData.access_token;
+          const userProfile: UserProfile = {
+            id: 'twitch-user',
+            login: 'twitch-user',
+            display_name: 'Twitch User',
+            email: undefined,
+          };
+
+          await invoke('save_access_token', { token });
+          setAuthState({ isAuthenticated: true, user: userProfile, accessToken: token });
+
           cleanup();
-          resolveRedirect(tokenData.access_token);
+          resolveRedirect(token);
         } catch (e) {
           cleanup();
           rejectRedirect(e instanceof Error ? e : new Error(String(e)));

@@ -1,6 +1,10 @@
-use std::env;
+use std::{env, sync::Mutex};
 use tauri::{command, Emitter, Window};
 use tauri_plugin_oauth::start_with_config;
+
+struct AppState {
+    access_token: Mutex<Option<String>>,
+}
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct TwitchTokenResponse {
@@ -57,10 +61,32 @@ async fn exchange_twitch_code(code: String, port: u16) -> Result<TwitchTokenResp
         return Err(format!("Twitch token exchange failed ({status}): {body}"));
     }
 
-    response
+    let token_response = response
         .json::<TwitchTokenResponse>()
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+
+    Ok(token_response)
+}
+
+#[command]
+fn save_access_token(state: tauri::State<'_, AppState>, token: String) -> Result<(), String> {
+    let mut guard = state.access_token.lock().map_err(|e| e.to_string())?;
+    *guard = Some(token);
+    Ok(())
+}
+
+#[command]
+fn get_access_token(state: tauri::State<'_, AppState>) -> Result<Option<String>, String> {
+    let guard = state.access_token.lock().map_err(|e| e.to_string())?;
+    Ok(guard.clone())
+}
+
+#[command]
+fn clear_access_token(state: tauri::State<'_, AppState>) -> Result<(), String> {
+    let mut guard = state.access_token.lock().map_err(|e| e.to_string())?;
+    *guard = None;
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -69,10 +95,16 @@ pub fn run() {
     let _ = dotenvy::dotenv();
 
     tauri::Builder::default()
+        .manage(AppState {
+            access_token: Mutex::new(None),
+        })
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             start_oauth_server,
             exchange_twitch_code,
+            save_access_token,
+            get_access_token,
+            clear_access_token,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
