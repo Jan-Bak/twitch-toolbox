@@ -19,7 +19,9 @@ const AuthLayout = () => {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <Outlet />
+      <div className="p-2 w-full">
+        <Outlet />
+      </div>
     </SidebarProvider>
   );
 };

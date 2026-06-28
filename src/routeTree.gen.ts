@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as AuthIndexRouteImport } from './routes/_auth/index'
+import { Route as AuthLoopWriterRouteImport } from './routes/_auth/loop-writer'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -27,27 +28,35 @@ const AuthIndexRoute = AuthIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthLoopWriterRoute = AuthLoopWriterRouteImport.update({
+  id: '/loop-writer',
+  path: '/loop-writer',
+  getParentRoute: () => AuthRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthIndexRoute
   '/login': typeof LoginRoute
+  '/loop-writer': typeof AuthLoopWriterRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/loop-writer': typeof AuthLoopWriterRoute
   '/': typeof AuthIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_auth': typeof AuthRouteWithChildren
   '/login': typeof LoginRoute
+  '/_auth/loop-writer': typeof AuthLoopWriterRoute
   '/_auth/': typeof AuthIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login'
+  fullPaths: '/' | '/login' | '/loop-writer'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/'
-  id: '__root__' | '/_auth' | '/login' | '/_auth/'
+  to: '/login' | '/loop-writer' | '/'
+  id: '__root__' | '/_auth' | '/login' | '/_auth/loop-writer' | '/_auth/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -78,14 +87,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthIndexRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/loop-writer': {
+      id: '/_auth/loop-writer'
+      path: '/loop-writer'
+      fullPath: '/loop-writer'
+      preLoaderRoute: typeof AuthLoopWriterRouteImport
+      parentRoute: typeof AuthRoute
+    }
   }
 }
 
 interface AuthRouteChildren {
+  AuthLoopWriterRoute: typeof AuthLoopWriterRoute
   AuthIndexRoute: typeof AuthIndexRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
+  AuthLoopWriterRoute: AuthLoopWriterRoute,
   AuthIndexRoute: AuthIndexRoute,
 }
 

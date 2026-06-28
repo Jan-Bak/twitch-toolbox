@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import useUser from '@/stores/user';
 import { Separator } from '../ui/separator';
 import LoopIcon from '../icons/loop-icon';
+import { Link } from '@tanstack/react-router';
 
 const AppSidebar = () => {
   const user = useUser((state) => state.user);
@@ -45,8 +46,10 @@ const AppSidebar = () => {
           </SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton>
-                <LoopIcon /> Loop writer
+              <SidebarMenuButton asChild>
+                <Link to="/loop-writer" className="flex items-center gap-2">
+                  <LoopIcon /> Loop writer
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
