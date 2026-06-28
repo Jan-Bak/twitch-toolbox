@@ -19,22 +19,20 @@ const Login = () => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const handleLogin = () => {
-    void (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        await loginWithTwitch();
+  const handleLogin = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await loginWithTwitch();
 
-        navigate({
-          to: '/menu',
-        });
-      } catch (e) {
-        setError(String(e));
-      } finally {
-        setLoading(false);
-      }
-    })();
+      await navigate({
+        to: '/',
+      });
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -59,7 +57,7 @@ const Login = () => {
             <Button
               variant="outline"
               className="w-full cursor-pointer"
-              onClick={handleLogin}
+              onClick={() => void handleLogin()}
               disabled={loading}
             >
               <TwitchIcon /> {loading ? 'Logging in...' : 'Login via Twitch'}

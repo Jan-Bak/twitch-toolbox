@@ -7,7 +7,7 @@ export const Route = createFileRoute('/login')({
     if (context.auth.isAuthenticated) {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw redirect({
-        to: '/menu',
+        to: '/',
         search: { redirect: location.href },
       });
     }

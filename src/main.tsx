@@ -2,9 +2,9 @@ import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { ThemeProvider } from '@/components/theme-provider';
 import { createRouter, RouterProvider } from '@tanstack/react-router';
-import { invoke } from '@tauri-apps/api/core';
 import { routeTree } from './routeTree.gen';
 import useUser from '@/stores/user';
+import { restoreAuthSession } from '../lib/twitchAuth';
 
 export type RouterContext = {
   auth: {
@@ -32,16 +32,7 @@ const RootComponent = () => {
   const { isAuthenticated, setAuthState } = useUser();
 
   useEffect(() => {
-    void (async () => {
-      try {
-        const token = await invoke<string | null>('get_access_token');
-        if (token) {
-          setAuthState({ isAuthenticated: true, accessToken: token });
-        }
-      } catch {
-        setAuthState({ isAuthenticated: false, accessToken: null });
-      }
-    })();
+    void restoreAuthSession();
   }, [setAuthState]);
 
   return (

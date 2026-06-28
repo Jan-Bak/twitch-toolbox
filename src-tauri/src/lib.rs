@@ -4,6 +4,7 @@ use tauri_plugin_oauth::start_with_config;
 
 struct AppState {
     access_token: Mutex<Option<String>>,
+    refresh_token: Mutex<Option<String>>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -89,6 +90,26 @@ fn clear_access_token(state: tauri::State<'_, AppState>) -> Result<(), String> {
     Ok(())
 }
 
+#[command]
+fn save_refresh_token(state: tauri::State<'_, AppState>, token: String) -> Result<(), String> {
+    let mut guard = state.refresh_token.lock().map_err(|e| e.to_string())?;
+    *guard = Some(token);
+    Ok(())
+}
+
+#[command]
+fn get_refresh_token(state: tauri::State<'_, AppState>) -> Result<Option<String>, String> {
+    let guard = state.refresh_token.lock().map_err(|e| e.to_string())?;
+    Ok(guard.clone())
+}
+
+#[command]
+fn clear_refresh_token(state: tauri::State<'_, AppState>) -> Result<(), String> {
+    let mut guard = state.refresh_token.lock().map_err(|e| e.to_string())?;
+    *guard = None;
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let _ = dotenvy::from_filename(".env.local");
@@ -97,6 +118,7 @@ pub fn run() {
     tauri::Builder::default()
         .manage(AppState {
             access_token: Mutex::new(None),
+            refresh_token: Mutex::new(None),
         })
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
@@ -105,6 +127,9 @@ pub fn run() {
             save_access_token,
             get_access_token,
             clear_access_token,
+            save_refresh_token,
+            get_refresh_token,
+            clear_refresh_token,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

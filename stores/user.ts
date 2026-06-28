@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type UserProfile = {
+export type UserProfile = {
   id?: string;
   login?: string;
   display_name?: string;
@@ -36,4 +36,3 @@ const useUser = create<UserState>((set) => ({
 }));
 
 export default useUser;
-export type { UserProfile };
