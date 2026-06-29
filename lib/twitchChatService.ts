@@ -86,4 +86,8 @@ const scheduleLoopWriter = async (args: {
   };
 };
 
-export { resolveTwitchUserId, sendTwitchChatMessage, scheduleLoopWriter };
+const stopLoopWriter = async () => {
+  await invoke('stop_loop_writer_job');
+};
+
+export { resolveTwitchUserId, sendTwitchChatMessage, scheduleLoopWriter, stopLoopWriter };

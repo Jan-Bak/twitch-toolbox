@@ -1,6 +1,7 @@
 use std::{env, sync::Mutex};
 use tauri::{command, Emitter, Window};
 use tauri_plugin_oauth::start_with_config;
+use tokio::{sync::oneshot, task::JoinHandle};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct TwitchUserResponse {
@@ -117,6 +118,8 @@ async fn send_twitch_chat_message_with_access_token(
 struct AppState {
     access_token: Mutex<Option<String>>,
     refresh_token: Mutex<Option<String>>,
+    loop_writer_task: Mutex<Option<JoinHandle<()>>>,
+    loop_writer_cancel: Mutex<Option<oneshot::Sender<()>>>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -297,24 +300,37 @@ async fn start_loop_writer_job(
     let task_message = message.clone();
     let task_window = window.clone();
 
-    tokio::spawn(async move {
+    let mut existing_sender = state.loop_writer_cancel.lock().map_err(|e| e.to_string())?;
+    if existing_sender.is_some() {
+        return Err("A loop writer is already running".to_string());
+    }
+
+    let (cancel_sender, cancel_receiver) = oneshot::channel::<()>();
+    let handle = tokio::spawn(async move {
+        let mut cancel_receiver = cancel_receiver;
         loop {
-            match send_twitch_chat_message_with_access_token(
+            let send_result = send_twitch_chat_message_with_access_token(
                 &task_access_token,
                 &task_broadcaster_id,
                 &task_sender_id,
                 &task_message,
             )
-            .await
-            {
-                Ok(_) => {}
-                Err(error) => {
-                    let _ = task_window.emit("twitch-loop-writer-error", error);
-                }
+            .await;
+
+            if let Err(error) = send_result {
+                let _ = task_window.emit("twitch-loop-writer-error", error);
             }
-            tokio::time::sleep(std::time::Duration::from_secs(interval_secs)).await;
+
+            tokio::select! {
+                _ = tokio::time::sleep(std::time::Duration::from_secs(interval_secs)) => {}
+                _ = &mut cancel_receiver => break,
+            }
         }
     });
+
+    *existing_sender = Some(cancel_sender);
+    let mut task_handle_guard = state.loop_writer_task.lock().map_err(|e| e.to_string())?;
+    *task_handle_guard = Some(handle);
 
     Ok(serde_json::json!({
         "cronExpression": interval_label,
@@ -323,6 +339,26 @@ async fn start_loop_writer_job(
         "message": message
     }))
 }
+
+#[command]
+async fn stop_loop_writer_job(
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    let sender = {
+        let mut guard = state.loop_writer_cancel.lock().map_err(|e| e.to_string())?;
+        guard.take()
+    };
+
+    if let Some(sender) = sender {
+        let _ = sender.send(());
+        let mut handle_guard = state.loop_writer_task.lock().map_err(|e| e.to_string())?;
+        *handle_guard = None;
+        Ok(())
+    } else {
+        Err("No active loop writer is running".to_string())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let _ = dotenvy::from_filename(".env.local");
@@ -332,6 +368,8 @@ pub fn run() {
         .manage(AppState {
             access_token: Mutex::new(None),
             refresh_token: Mutex::new(None),
+            loop_writer_task: Mutex::new(None),
+            loop_writer_cancel: Mutex::new(None),
         })
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
@@ -346,6 +384,7 @@ pub fn run() {
             resolve_twitch_user_id,
             send_twitch_chat_message,
             start_loop_writer_job,
+            stop_loop_writer_job,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

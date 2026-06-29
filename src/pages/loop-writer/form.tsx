@@ -3,10 +3,11 @@ import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { type FormEvent, useState } from 'react';
+import { type SyntheticEvent, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { scheduleLoopWriter } from '@/lib/twitchChatService';
+import { scheduleLoopWriter, stopLoopWriter, resolveTwitchUserId } from '@/lib/twitchChatService';
+import useUser from '@/stores/user';
 
 type LoopWriterFormInputs = {
   channel: string;
@@ -22,8 +23,10 @@ const LoopWriterForm = () => {
     handleSubmit,
     formState: { errors },
   } = useForm<LoopWriterFormInputs>();
+  const { accessToken } = useUser();
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loopActive, setLoopActive] = useState(false);
 
   const onSubmit: SubmitHandler<LoopWriterFormInputs> = async (data) => {
     setIsSubmitting(true);
@@ -37,6 +40,7 @@ const LoopWriterForm = () => {
         seconds: Number.parseInt(String(data.seconds), 10),
       };
       const result = await scheduleLoopWriter(normalizedData);
+      setLoopActive(true);
       setStatusMessage(
         `Scheduled loop writer for ${data.channel} using cron ${result.cronExpression}`
       );
@@ -51,7 +55,26 @@ const LoopWriterForm = () => {
     }
   };
 
-  const handleFormSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleStop = async () => {
+    setIsSubmitting(true);
+    setStatusMessage(null);
+
+    try {
+      await stopLoopWriter();
+      setLoopActive(false);
+      setStatusMessage('Loop writer stopped successfully.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to stop loop writer';
+      setStatusMessage(message);
+      toast.error('Could not stop loop writer', {
+        description: message,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleFormSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     void handleSubmit(onSubmit)(event);
   };
 
@@ -63,11 +86,29 @@ const LoopWriterForm = () => {
           id="input-channel"
           type="text"
           placeholder="For eg. DayRa1se"
-          {...register('channel', { required: true, minLength: 3, maxLength: 25 })}
+          {...register('channel', {
+            required: 'Channel name is required',
+            minLength: { value: 3, message: 'Channel name must be at least 3 characters' },
+            maxLength: { value: 25, message: 'Channel name can be at most 25 characters' },
+            validate: async (value) => {
+              if (!accessToken) {
+                return 'Authentication required to validate channel name';
+              }
+
+              try {
+                const userId = await resolveTwitchUserId(value, accessToken);
+                return userId ? true : 'Channel name could not be resolved on Twitch';
+              } catch (error) {
+                return error instanceof Error
+                  ? error.message
+                  : 'Unable to find a channel with the given name on Twitch';
+              }
+            },
+          })}
         />
         <FieldDescription className={errors.channel ? 'text-destructive' : ''}>
           {errors.channel ? (
-            <>Channel name is required and must be between 3 and 25 characters.</>
+            <>{errors.channel.message}</>
           ) : (
             <>Type a valid Twitch channel name, where the loop will be activated.</>
           )}
@@ -131,11 +172,17 @@ const LoopWriterForm = () => {
       </Field>
       {statusMessage ? <p className="text-sm text-muted-foreground">{statusMessage}</p> : null}
       <div className="grid grid-cols-3 gap-2">
-        <Button type="submit" className="cursor-pointer" disabled={isSubmitting}>
-          {isSubmitting ? 'Activating…' : 'Activate'}
+        <Button type="submit" className="cursor-pointer" disabled={isSubmitting || loopActive}>
+          {isSubmitting ? 'Activating…' : loopActive ? 'Active' : 'Activate'}
         </Button>
-        <Button variant="destructive" disabled className="cursor-pointer">
-          Stop
+        <Button
+          type="button"
+          variant="destructive"
+          onClick={handleStop}
+          disabled={isSubmitting || !loopActive}
+          className="cursor-pointer"
+        >
+          {isSubmitting ? 'Stopping…' : 'Stop'}
         </Button>
         <Button variant="outline" disabled className="cursor-pointer">
           Reset
