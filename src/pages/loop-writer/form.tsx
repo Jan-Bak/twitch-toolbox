@@ -187,7 +187,7 @@ const LoopWriterForm = () => {
         <Button
           type="button"
           variant="destructive"
-          onClick={handleStop}
+          onClick={void handleStop}
           disabled={isSubmitting || !loopActive}
           className="cursor-pointer"
         >
