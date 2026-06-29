@@ -3,7 +3,10 @@ import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { type FormEvent, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import { scheduleLoopWriter } from '@/lib/twitchChatService';
 
 type LoopWriterFormInputs = {
   channel: string;
@@ -19,13 +22,41 @@ const LoopWriterForm = () => {
     handleSubmit,
     formState: { errors },
   } = useForm<LoopWriterFormInputs>();
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const onSubmit: SubmitHandler<LoopWriterFormInputs> = (data) => {
-    console.log(data);
+  const onSubmit: SubmitHandler<LoopWriterFormInputs> = async (data) => {
+    setIsSubmitting(true);
+    setStatusMessage(null);
+
+    try {
+      const normalizedData = {
+        ...data,
+        hours: Number.parseInt(String(data.hours), 10),
+        minutes: Number.parseInt(String(data.minutes), 10),
+        seconds: Number.parseInt(String(data.seconds), 10),
+      };
+      const result = await scheduleLoopWriter(normalizedData);
+      setStatusMessage(
+        `Scheduled loop writer for ${data.channel} using cron ${result.cronExpression}`
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to schedule loop writer';
+      setStatusMessage(message);
+      toast.error('Could not activate loop writer', {
+        description: message,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleFormSubmit = (event: FormEvent<HTMLFormElement>) => {
+    void handleSubmit(onSubmit)(event);
   };
 
   return (
-    <form className="flex flex-col gap-2" onSubmit={void handleSubmit(onSubmit)}>
+    <form className="flex flex-col gap-2" onSubmit={handleFormSubmit}>
       <Field>
         <FieldLabel htmlFor="input-channel">Twitch channel name</FieldLabel>
         <Input
@@ -98,9 +129,10 @@ const LoopWriterForm = () => {
           )}
         </FieldDescription>
       </Field>
+      {statusMessage ? <p className="text-sm text-muted-foreground">{statusMessage}</p> : null}
       <div className="grid grid-cols-3 gap-2">
-        <Button type="submit" className="cursor-pointer">
-          Activate
+        <Button type="submit" className="cursor-pointer" disabled={isSubmitting}>
+          {isSubmitting ? 'Activating…' : 'Activate'}
         </Button>
         <Button variant="destructive" disabled className="cursor-pointer">
           Stop

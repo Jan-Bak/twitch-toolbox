@@ -5,7 +5,7 @@ import useUser, { type UserProfile } from '@/stores/user';
 
 const CLIENT_ID = import.meta.env.VITE_TWITCH_CLIENT_ID;
 
-const SCOPES = ['user:read:email', 'channel:read:subscriptions'];
+const SCOPES = ['user:read:email', 'channel:read:subscriptions', 'user:write:chat'];
 
 type TwitchTokenData = {
   access_token: string;
@@ -88,6 +88,7 @@ const persistAuthState = async (
     await invoke('save_refresh_token', { token: refreshToken });
   }
   setAuthState({ isAuthenticated: true, user, accessToken: token });
+  return token;
 };
 
 const loginWithTwitch = async (): Promise<string> => {

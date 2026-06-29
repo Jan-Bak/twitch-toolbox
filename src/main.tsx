@@ -32,7 +32,20 @@ const RootComponent = () => {
   const { isAuthenticated, setAuthState } = useUser();
 
   useEffect(() => {
-    void restoreAuthSession();
+    let cancelled = false;
+
+    const restore = async () => {
+      const restored = await restoreAuthSession();
+      if (!cancelled && restored) {
+        setAuthState({ isAuthenticated: true, accessToken: restored });
+      }
+    };
+
+    void restore();
+
+    return () => {
+      cancelled = true;
+    };
   }, [setAuthState]);
 
   return (
