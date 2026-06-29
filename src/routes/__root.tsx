@@ -22,15 +22,19 @@ function Root() {
     let unlisten: (() => void) | undefined;
 
     const subscribe = async () => {
-      unlisten = await listen<string>('twitch-loop-writer-error', (event) => {
-        toast.error('Twitch chat send failed', {
-          description: event.payload || 'The loop could not send a chat message.',
-        });
-      });
+      unlisten = await listen<{ title?: string; description?: string }>(
+        'tauri-api-error',
+        (event) => {
+          toast.error(event.payload.title ?? 'Rust API error', {
+            description:
+              event.payload.description ?? 'An error occurred while calling the backend.',
+          });
+        }
+      );
     };
 
     void subscribe().catch((error) => {
-      console.error('Failed to subscribe to Twitch loop writer errors', error);
+      console.error('Failed to subscribe to Rust API errors', error);
     });
 
     return () => {

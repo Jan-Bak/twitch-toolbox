@@ -44,13 +44,36 @@ fn twitch_client_id() -> Result<String, String> {
         .map_err(|_| "TWITCH_CLIENT_ID is not set".to_string())
 }
 
+fn emit_rust_error(window: &Window, title: &str, description: Option<&str>) {
+    let payload = serde_json::json!({
+        "title": title,
+        "description": description.unwrap_or(""),
+    });
+
+    let _ = window.emit("tauri-api-error", payload);
+}
+
+fn emit_error<T>(window: &Window, title: &str, result: Result<T, String>) -> Result<T, String> {
+    result.map_err(|error| {
+        emit_rust_error(window, title, Some(&error));
+        error
+    })
+}
+
 async fn resolve_twitch_user_id_with_access_token(
     access_token: &str,
     login: &str,
 ) -> Result<Option<String>, String> {
     let client = reqwest::Client::new();
+    let normalized_login = login.trim().to_lowercase();
+    let url = reqwest::Url::parse_with_params(
+        "https://api.twitch.tv/helix/users",
+        &[("login", normalized_login.as_str())],
+    )
+    .map_err(|e| e.to_string())?;
+
     let response = client
-        .get(format!("https://api.twitch.tv/helix/users?login={}", login))
+        .get(url)
         .header("Authorization", format!("Bearer {}", access_token))
         .header("Client-Id", twitch_client_id()?)
         .send()
@@ -172,7 +195,7 @@ async fn start_oauth_server(window: Window) -> Result<u16, String> {
 
 
 #[command]
-async fn exchange_twitch_code(code: String, port: u16) -> Result<TwitchTokenResponse, String> {
+async fn exchange_twitch_code(window: Window, code: String, port: u16) -> Result<TwitchTokenResponse, String> {
     let client = reqwest::Client::new();
     let client_id = twitch_client_id()?;
     let client_secret = env::var("TWITCH_CLIENT_SECRET")
@@ -186,24 +209,35 @@ async fn exchange_twitch_code(code: String, port: u16) -> Result<TwitchTokenResp
         ("redirect_uri", &format!("http://localhost:{}", port)),
     ];
 
-    let response = client
-        .post("https://id.twitch.tv/oauth2/token")
-        .form(&params)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
+    let response = emit_error(
+        &window,
+        "Twitch code exchange failed",
+        client
+            .post("https://id.twitch.tv/oauth2/token")
+            .form(&params)
+            .send()
+            .await
+            .map_err(|e| e.to_string()),
+    )?;
 
     if !response.status().is_success() {
         let status = response.status();
-        let body = response.text().await.map_err(|e| e.to_string())?;
+        let body = response.text().await.map_err(|e| {
+            let error = e.to_string();
+            emit_rust_error(&window, "Twitch code exchange failed", Some(&error));
+            error
+        })?;
 
-        return Err(format!("Twitch token exchange failed ({status}): {body}"));
+        let error_message = format!("Twitch token exchange failed ({status}): {body}");
+        emit_rust_error(&window, "Twitch code exchange failed", Some(&error_message));
+        return Err(error_message);
     }
 
-    let token_response = response
-        .json::<TwitchTokenResponse>()
-        .await
-        .map_err(|e| e.to_string())?;
+    let token_response = emit_error(
+        &window,
+        "Failed to parse Twitch token response",
+        response.json::<TwitchTokenResponse>().await.map_err(|e| e.to_string()),
+    )?;
 
     Ok(token_response)
 }

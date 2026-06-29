@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { toast } from 'sonner';
 import useUser, { type UserProfile } from '@/stores/user';
 
 const CLIENT_ID = import.meta.env.VITE_TWITCH_CLIENT_ID;
@@ -77,15 +78,27 @@ const refreshAccessToken = async (refreshToken: string): Promise<TwitchTokenData
   return (await response.json()) as TwitchTokenData;
 };
 
+const invokeWithToast = async <T>(command: string, params?: Record<string, unknown>) => {
+  try {
+    return await invoke<T>(command, params);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    toast.error('Rust API error', {
+      description: message || 'An error occurred while calling the backend.',
+    });
+    throw error;
+  }
+};
+
 const persistAuthState = async (
   token: string,
   user: UserProfile | null,
   refreshToken?: string | null
 ) => {
   const { setAuthState } = useUser.getState();
-  await invoke('save_access_token', { token });
+  await invokeWithToast('save_access_token', { token });
   if (refreshToken) {
-    await invoke('save_refresh_token', { token: refreshToken });
+    await invokeWithToast('save_refresh_token', { token: refreshToken });
   }
   setAuthState({ isAuthenticated: true, user, accessToken: token });
   return token;
@@ -146,7 +159,7 @@ const loginWithTwitch = async (): Promise<string> => {
         }
 
         try {
-          const tokenData = await invoke<TwitchTokenData>('exchange_twitch_code', {
+          const tokenData = await invokeWithToast<TwitchTokenData>('exchange_twitch_code', {
             code,
             port,
           });
@@ -186,8 +199,8 @@ const loginWithTwitch = async (): Promise<string> => {
 const restoreAuthSession = async () => {
   const { setAuthState } = useUser.getState();
   try {
-    const token = await invoke<string | null>('get_access_token');
-    const refreshToken = await invoke<string | null>('get_refresh_token');
+    const token = await invokeWithToast<string | null>('get_access_token');
+    const refreshToken = await invokeWithToast<string | null>('get_refresh_token');
 
     if (!token) {
       setAuthState({ isAuthenticated: false, accessToken: null });

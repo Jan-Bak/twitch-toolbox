@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { toast } from 'sonner';
 
 const CLIENT_ID = import.meta.env.VITE_TWITCH_CLIENT_ID;
 
@@ -13,14 +14,31 @@ type TwitchChatMessageResponse = {
   }>;
 };
 
+const invokeWithToast = async <T>(command: string, params?: Record<string, unknown>) => {
+  try {
+    return await invoke<T>(command, params);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    toast.error('Rust API error', {
+      description: message || 'An error occurred while calling the backend.',
+    });
+    throw error;
+  }
+};
+
 const getTwitchAuthHeaders = (accessToken: string) => ({
   Authorization: `Bearer ${accessToken}`,
   'Client-ID': CLIENT_ID ?? '',
 });
 
 const resolveTwitchUserId = async (login: string, accessToken: string): Promise<string | null> => {
+  const normalizedLogin = login.trim().toLowerCase();
+  if (!normalizedLogin) {
+    return null;
+  }
+
   const response = await fetch(
-    `https://api.twitch.tv/helix/users?login=${encodeURIComponent(login)}`,
+    `https://api.twitch.tv/helix/users?login=${encodeURIComponent(normalizedLogin)}`,
     {
       headers: getTwitchAuthHeaders(accessToken),
     }
@@ -67,16 +85,17 @@ const scheduleLoopWriter = async (args: {
   minutes: number;
   seconds: number;
 }) => {
-  const result = await invoke<{ cronExpression: string; broadcasterId: string; senderId: string }>(
-    'start_loop_writer_job',
-    {
-      channel: args.channel,
-      message: args.message,
-      hours: Number.parseInt(String(args.hours), 10),
-      minutes: Number.parseInt(String(args.minutes), 10),
-      seconds: Number.parseInt(String(args.seconds), 10),
-    }
-  );
+  const result = await invokeWithToast<{
+    cronExpression: string;
+    broadcasterId: string;
+    senderId: string;
+  }>('start_loop_writer_job', {
+    channel: args.channel,
+    message: args.message,
+    hours: Number.parseInt(String(args.hours), 10),
+    minutes: Number.parseInt(String(args.minutes), 10),
+    seconds: Number.parseInt(String(args.seconds), 10),
+  });
 
   return {
     cronExpression: result.cronExpression,
@@ -87,7 +106,7 @@ const scheduleLoopWriter = async (args: {
 };
 
 const stopLoopWriter = async () => {
-  await invoke('stop_loop_writer_job');
+  await invokeWithToast('stop_loop_writer_job');
 };
 
 export { resolveTwitchUserId, sendTwitchChatMessage, scheduleLoopWriter, stopLoopWriter };

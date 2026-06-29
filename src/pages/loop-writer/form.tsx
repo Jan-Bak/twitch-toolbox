@@ -99,8 +99,13 @@ const LoopWriterForm = () => {
                 return 'Authentication required to validate channel name';
               }
 
+              const normalizedChannel = value.trim().toLowerCase();
+              if (!normalizedChannel) {
+                return 'Channel name is required';
+              }
+
               try {
-                const userId = await resolveTwitchUserId(value, accessToken);
+                const userId = await resolveTwitchUserId(normalizedChannel, accessToken);
                 return userId ? true : 'Channel name could not be resolved on Twitch';
               } catch (error) {
                 return error instanceof Error
@@ -187,7 +192,7 @@ const LoopWriterForm = () => {
         <Button
           type="button"
           variant="destructive"
-          onClick={void handleStop}
+          onClick={handleStop}
           disabled={isSubmitting || !loopActive}
           className="cursor-pointer"
         >
