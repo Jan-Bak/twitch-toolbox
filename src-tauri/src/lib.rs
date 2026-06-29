@@ -115,6 +115,30 @@ async fn send_twitch_chat_message_with_access_token(
     response.json::<TwitchChatMessageResponse>().await.map_err(|e| e.to_string())
 }
 
+fn format_loop_message(template: &str, iteration: u64) -> (String, u64) {
+    let mut result = template.to_string();
+    let has_post_increment = result.contains("{{i++}}");
+    let has_pre_increment = result.contains("{{++i}}");
+    let mut current = iteration;
+
+    if has_pre_increment {
+        current = current.saturating_add(1);
+        result = result.replace("{{++i}}", &current.to_string());
+    }
+
+    let rendered_current = current.to_string();
+    result = result.replace("{{i++}}", &rendered_current);
+    result = result.replace("{{i}}", &rendered_current);
+    result = result.replace("{{count}}", &rendered_current);
+    result = result.replace("{{index}}", &rendered_current);
+
+    if has_post_increment {
+        current = current.saturating_add(1);
+    }
+
+    (result, current)
+}
+
 struct AppState {
     access_token: Mutex<Option<String>>,
     refresh_token: Mutex<Option<String>>,
@@ -308,12 +332,17 @@ async fn start_loop_writer_job(
     let (cancel_sender, cancel_receiver) = oneshot::channel::<()>();
     let handle = tokio::spawn(async move {
         let mut cancel_receiver = cancel_receiver;
+        let mut iteration: u64 = 1;
+
         loop {
+            let (rendered_message, next_iteration) = format_loop_message(&task_message, iteration);
+            iteration = next_iteration;
+
             let send_result = send_twitch_chat_message_with_access_token(
                 &task_access_token,
                 &task_broadcaster_id,
                 &task_sender_id,
-                &task_message,
+                &rendered_message,
             )
             .await;
 

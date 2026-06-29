@@ -3,7 +3,7 @@ import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { type SyntheticEvent, useState } from 'react';
+import { type SyntheticEvent, useEffect, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { scheduleLoopWriter, stopLoopWriter, resolveTwitchUserId } from '@/lib/twitchChatService';
@@ -24,13 +24,11 @@ const LoopWriterForm = () => {
     formState: { errors },
   } = useForm<LoopWriterFormInputs>();
   const { accessToken } = useUser();
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loopActive, setLoopActive] = useState(false);
 
   const onSubmit: SubmitHandler<LoopWriterFormInputs> = async (data) => {
     setIsSubmitting(true);
-    setStatusMessage(null);
 
     try {
       const normalizedData = {
@@ -41,12 +39,11 @@ const LoopWriterForm = () => {
       };
       const result = await scheduleLoopWriter(normalizedData);
       setLoopActive(true);
-      setStatusMessage(
+      toast.success(
         `Scheduled loop writer for ${data.channel} using cron ${result.cronExpression}`
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to schedule loop writer';
-      setStatusMessage(message);
       toast.error('Could not activate loop writer', {
         description: message,
       });
@@ -57,15 +54,13 @@ const LoopWriterForm = () => {
 
   const handleStop = async () => {
     setIsSubmitting(true);
-    setStatusMessage(null);
 
     try {
       await stopLoopWriter();
       setLoopActive(false);
-      setStatusMessage('Loop writer stopped successfully.');
+      toast.success('Loop writer stopped successfully.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to stop loop writer';
-      setStatusMessage(message);
       toast.error('Could not stop loop writer', {
         description: message,
       });
@@ -77,6 +72,15 @@ const LoopWriterForm = () => {
   const handleFormSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     void handleSubmit(onSubmit)(event);
   };
+
+  useEffect(() => {
+    // Cleanup function to stop the loop writer when the component unmounts
+    return () => {
+      if (loopActive) {
+        void handleStop();
+      }
+    };
+  }, []);
 
   return (
     <form className="flex flex-col gap-2" onSubmit={handleFormSubmit}>
@@ -166,11 +170,16 @@ const LoopWriterForm = () => {
           {errors.message ? (
             <>Message is required and must be between 1 and 500 characters.</>
           ) : (
-            <>Type a message, which will be sent to the channel.</>
+            <>
+              Type a message, which will be sent to the channel. Supported variables:{' '}
+              <code className="font-mono">{'{{i}}'}</code>,{' '}
+              <code className="font-mono">{'{{count}}'}</code>,{' '}
+              <code className="font-mono">{'{{i++}}'}</code>,{' '}
+              <code className="font-mono">{'{{++i}}'}</code>.
+            </>
           )}
         </FieldDescription>
       </Field>
-      {statusMessage ? <p className="text-sm text-muted-foreground">{statusMessage}</p> : null}
       <div className="grid grid-cols-3 gap-2">
         <Button type="submit" className="cursor-pointer" disabled={isSubmitting || loopActive}>
           {isSubmitting ? 'Activating…' : loopActive ? 'Active' : 'Activate'}
