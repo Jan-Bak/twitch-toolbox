@@ -102,7 +102,7 @@ const LoopWriterForm = () => {
           <Input
             id="input-channel"
             type="text"
-            placeholder="For eg. DayRa1se"
+            placeholder="For eg. DayRa1sE"
             {...register('channel', {
               required: 'Channel name is required',
               minLength: { value: 3, message: 'Channel name must be at least 3 characters' },

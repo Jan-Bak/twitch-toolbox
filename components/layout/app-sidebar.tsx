@@ -8,16 +8,107 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import useUser from '@/stores/user';
 import { Separator } from '../ui/separator';
-import LoopIcon from '../icons/loop-icon';
 import { Link } from '@tanstack/react-router';
+import { ChevronRight } from 'lucide-react';
+import { useState } from 'react';
+import sidebarData from './sidebar-data';
+import type { SidebarData, SidebarItemData } from './sidebar-data';
+
+type SidebarItemRendererProps = {
+  item: SidebarItemData;
+  isExpanded: boolean;
+  onToggle: (title: string) => void;
+};
+
+const SidebarItemRenderer = ({ item, isExpanded, onToggle }: SidebarItemRendererProps) => {
+  const hasSubItems = Boolean(item.subItems?.length);
+
+  const handleToggle = (event: React.MouseEvent) => {
+    if (!hasSubItems) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    onToggle(item.title);
+  };
+
+  return (
+    <SidebarMenuItem key={item.title}>
+      <div className="flex items-center">
+        <SidebarMenuButton asChild className="flex-1">
+          {item.to ? (
+            <Link to={item.to} className="flex items-center gap-2" onClick={handleToggle}>
+              {item?.icon}
+              <span>{item.title}</span>
+            </Link>
+          ) : (
+            <button type="button" className="flex w-full items-center gap-2" onClick={handleToggle}>
+              {item?.icon}
+              <span>{item.title}</span>
+            </button>
+          )}
+        </SidebarMenuButton>
+        {hasSubItems ? (
+          <button
+            type="button"
+            onClick={handleToggle}
+            className="mr-1 rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            aria-label={isExpanded ? `Hide ${item.title} submenu` : `Show ${item.title} submenu`}
+          >
+            <ChevronRight
+              className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+            />
+          </button>
+        ) : null}
+      </div>
+      {hasSubItems && isExpanded ? (
+        <SidebarMenuSub>
+          {item.subItems?.map((subItem) => (
+            <SidebarMenuSubItem key={subItem.title}>
+              <SidebarMenuSubButton asChild>
+                {subItem.to ? (
+                  <Link to={subItem.to} className="flex items-center gap-2">
+                    {subItem?.icon}
+                    <span>{subItem.title}</span>
+                  </Link>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    {subItem?.icon}
+                    <span>{subItem.title}</span>
+                  </span>
+                )}
+              </SidebarMenuSubButton>
+            </SidebarMenuSubItem>
+          ))}
+        </SidebarMenuSub>
+      ) : null}
+    </SidebarMenuItem>
+  );
+};
 
 const AppSidebar = () => {
   const user = useUser((state) => state.user);
+  const sidebarConfig = sidebarData as SidebarData;
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>(() => {
+    return Object.fromEntries(
+      sidebarConfig.groups.flatMap((group) =>
+        group.items.map((item) => [item.title, item.defaultExpanded ?? false])
+      )
+    );
+  });
+
+  const toggleItem = (title: string) => {
+    setExpandedItems((current) => ({ ...current, [title]: !current[title] }));
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -40,20 +131,23 @@ const AppSidebar = () => {
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
-        <SidebarGroup className="overflow-hidden whitespace-nowrap">
-          <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">
-            Tools
-          </SidebarGroupLabel>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link to="/loop-writer" className="flex items-center gap-2">
-                  <LoopIcon /> Loop writer
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
+        {sidebarConfig.groups.map((group) => (
+          <SidebarGroup key={group.label} className="overflow-hidden whitespace-nowrap">
+            <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">
+              {group.label}
+            </SidebarGroupLabel>
+            <SidebarMenu>
+              {group.items.map((item) => (
+                <SidebarItemRenderer
+                  key={item.title}
+                  item={item}
+                  isExpanded={Boolean(expandedItems[item.title])}
+                  onToggle={toggleItem}
+                />
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
       <Separator />
       <SidebarFooter>

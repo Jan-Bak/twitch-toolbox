@@ -12,7 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as AuthIndexRouteImport } from './routes/_auth/index'
-import { Route as AuthLoopWriterRouteImport } from './routes/_auth/loop-writer'
+import { Route as AuthLoopWriterSavedRouteImport } from './routes/_auth/loop-writer/saved'
+import { Route as AuthLoopWriterCreateRouteImport } from './routes/_auth/loop-writer/create'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -28,35 +29,49 @@ const AuthIndexRoute = AuthIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthRoute,
 } as any)
-const AuthLoopWriterRoute = AuthLoopWriterRouteImport.update({
-  id: '/loop-writer',
-  path: '/loop-writer',
+const AuthLoopWriterSavedRoute = AuthLoopWriterSavedRouteImport.update({
+  id: '/loop-writer/saved',
+  path: '/loop-writer/saved',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthLoopWriterCreateRoute = AuthLoopWriterCreateRouteImport.update({
+  id: '/loop-writer/create',
+  path: '/loop-writer/create',
   getParentRoute: () => AuthRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthIndexRoute
   '/login': typeof LoginRoute
-  '/loop-writer': typeof AuthLoopWriterRoute
+  '/loop-writer/create': typeof AuthLoopWriterCreateRoute
+  '/loop-writer/saved': typeof AuthLoopWriterSavedRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
-  '/loop-writer': typeof AuthLoopWriterRoute
   '/': typeof AuthIndexRoute
+  '/loop-writer/create': typeof AuthLoopWriterCreateRoute
+  '/loop-writer/saved': typeof AuthLoopWriterSavedRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_auth': typeof AuthRouteWithChildren
   '/login': typeof LoginRoute
-  '/_auth/loop-writer': typeof AuthLoopWriterRoute
   '/_auth/': typeof AuthIndexRoute
+  '/_auth/loop-writer/create': typeof AuthLoopWriterCreateRoute
+  '/_auth/loop-writer/saved': typeof AuthLoopWriterSavedRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/loop-writer'
+  fullPaths: '/' | '/login' | '/loop-writer/create' | '/loop-writer/saved'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/loop-writer' | '/'
-  id: '__root__' | '/_auth' | '/login' | '/_auth/loop-writer' | '/_auth/'
+  to: '/login' | '/' | '/loop-writer/create' | '/loop-writer/saved'
+  id:
+    | '__root__'
+    | '/_auth'
+    | '/login'
+    | '/_auth/'
+    | '/_auth/loop-writer/create'
+    | '/_auth/loop-writer/saved'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -87,24 +102,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthIndexRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_auth/loop-writer': {
-      id: '/_auth/loop-writer'
-      path: '/loop-writer'
-      fullPath: '/loop-writer'
-      preLoaderRoute: typeof AuthLoopWriterRouteImport
+    '/_auth/loop-writer/saved': {
+      id: '/_auth/loop-writer/saved'
+      path: '/loop-writer/saved'
+      fullPath: '/loop-writer/saved'
+      preLoaderRoute: typeof AuthLoopWriterSavedRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/loop-writer/create': {
+      id: '/_auth/loop-writer/create'
+      path: '/loop-writer/create'
+      fullPath: '/loop-writer/create'
+      preLoaderRoute: typeof AuthLoopWriterCreateRouteImport
       parentRoute: typeof AuthRoute
     }
   }
 }
 
 interface AuthRouteChildren {
-  AuthLoopWriterRoute: typeof AuthLoopWriterRoute
   AuthIndexRoute: typeof AuthIndexRoute
+  AuthLoopWriterCreateRoute: typeof AuthLoopWriterCreateRoute
+  AuthLoopWriterSavedRoute: typeof AuthLoopWriterSavedRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
-  AuthLoopWriterRoute: AuthLoopWriterRoute,
   AuthIndexRoute: AuthIndexRoute,
+  AuthLoopWriterCreateRoute: AuthLoopWriterCreateRoute,
+  AuthLoopWriterSavedRoute: AuthLoopWriterSavedRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
