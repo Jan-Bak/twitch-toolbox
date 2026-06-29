@@ -4,9 +4,12 @@ import reactPlugin from '@eslint-react/eslint-plugin';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import prettier from 'eslint-config-prettier';
 import vitest from '@vitest/eslint-plugin';
+import globals from 'globals';
+import tsParser from '@typescript-eslint/parser';
+import tsPlugin from '@typescript-eslint/eslint-plugin';
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'src-tauri', 'src/routeTree.gen.ts'] },
+  { ignores: ['dist', 'node_modules', 'src-tauri', 'src/routeTree.gen.ts', 'components/ui'] },
 
   js.configs.recommended,
 
@@ -19,13 +22,39 @@ export default tseslint.config(
     files: ['src/**/*.ts', 'src/**/*.tsx'],
     extends: [...tseslint.configs.recommendedTypeChecked],
     languageOptions: {
+      parser: tsParser,
+      globals: {
+        ...globals.browser,
+      },
       parserOptions: {
         project: true,
         tsconfigRootDir: import.meta.dirname,
       },
     },
+    plugins: {
+      '@typescript-eslint': tsPlugin,
+    },
+    rules: {
+      ...tsPlugin.configs.recommended.rules,
+      'no-undef': 'off',
+    },
   },
-
+  {
+    files: ['**/*.ts', '**/*.tsx'],
+    languageOptions: {
+      parser: tsParser,
+      globals: {
+        ...globals.browser,
+      },
+    },
+    plugins: {
+      '@typescript-eslint': tsPlugin,
+    },
+    rules: {
+      ...tsPlugin.configs.recommended.rules,
+      'no-undef': 'off',
+    },
+  },
   {
     files: ['components/**/*.ts', 'components/**/*.tsx', 'lib/**/*.ts', 'lib/**/*.tsx'],
     extends: [...tseslint.configs.recommendedTypeChecked],

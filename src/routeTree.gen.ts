@@ -11,8 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthRouteImport } from './routes/_auth'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthMenuRouteImport } from './routes/_auth/menu'
+import { Route as AuthIndexRouteImport } from './routes/_auth/index'
+import { Route as AuthLoopWriterRouteImport } from './routes/_auth/loop-writer'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -23,44 +23,43 @@ const AuthRoute = AuthRouteImport.update({
   id: '/_auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
+const AuthIndexRoute = AuthIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthRoute,
 } as any)
-const AuthMenuRoute = AuthMenuRouteImport.update({
-  id: '/menu',
-  path: '/menu',
+const AuthLoopWriterRoute = AuthLoopWriterRouteImport.update({
+  id: '/loop-writer',
+  path: '/loop-writer',
   getParentRoute: () => AuthRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AuthIndexRoute
   '/login': typeof LoginRoute
-  '/menu': typeof AuthMenuRoute
+  '/loop-writer': typeof AuthLoopWriterRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/menu': typeof AuthMenuRoute
+  '/loop-writer': typeof AuthLoopWriterRoute
+  '/': typeof AuthIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/_auth': typeof AuthRouteWithChildren
   '/login': typeof LoginRoute
-  '/_auth/menu': typeof AuthMenuRoute
+  '/_auth/loop-writer': typeof AuthLoopWriterRoute
+  '/_auth/': typeof AuthIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/menu'
+  fullPaths: '/' | '/login' | '/loop-writer'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/menu'
-  id: '__root__' | '/' | '/_auth' | '/login' | '/_auth/menu'
+  to: '/login' | '/loop-writer' | '/'
+  id: '__root__' | '/_auth' | '/login' | '/_auth/loop-writer' | '/_auth/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRouteWithChildren
   LoginRoute: typeof LoginRoute
 }
@@ -81,35 +80,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/_auth/': {
+      id: '/_auth/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthIndexRouteImport
+      parentRoute: typeof AuthRoute
     }
-    '/_auth/menu': {
-      id: '/_auth/menu'
-      path: '/menu'
-      fullPath: '/menu'
-      preLoaderRoute: typeof AuthMenuRouteImport
+    '/_auth/loop-writer': {
+      id: '/_auth/loop-writer'
+      path: '/loop-writer'
+      fullPath: '/loop-writer'
+      preLoaderRoute: typeof AuthLoopWriterRouteImport
       parentRoute: typeof AuthRoute
     }
   }
 }
 
 interface AuthRouteChildren {
-  AuthMenuRoute: typeof AuthMenuRoute
+  AuthLoopWriterRoute: typeof AuthLoopWriterRoute
+  AuthIndexRoute: typeof AuthIndexRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
-  AuthMenuRoute: AuthMenuRoute,
+  AuthLoopWriterRoute: AuthLoopWriterRoute,
+  AuthIndexRoute: AuthIndexRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   AuthRoute: AuthRouteWithChildren,
   LoginRoute: LoginRoute,
 }

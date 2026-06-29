@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { ThemeProvider } from '@/components/theme-provider';
 import { createRouter, RouterProvider } from '@tanstack/react-router';
 import { routeTree } from './routeTree.gen';
+import useUser from '@/stores/user';
+import { restoreAuthSession } from '../lib/twitchAuth';
 
 export type RouterContext = {
   auth: {
@@ -27,12 +29,29 @@ declare module '@tanstack/react-router' {
 }
 
 const RootComponent = () => {
-  const auth: { isAuthenticated: boolean } = { isAuthenticated: false }; // Replace with your actual authentication logic
+  const { isAuthenticated, setAuthState } = useUser();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const restore = async () => {
+      const restored = await restoreAuthSession();
+      if (!cancelled && restored) {
+        setAuthState({ isAuthenticated: true, accessToken: restored });
+      }
+    };
+
+    void restore();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [setAuthState]);
 
   return (
     <React.StrictMode>
       <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-        <RouterProvider router={router} context={{ auth }} />
+        <RouterProvider router={router} context={{ auth: { isAuthenticated } }} />
       </ThemeProvider>
     </React.StrictMode>
   );

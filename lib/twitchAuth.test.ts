@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, afterEach, it, vi } from 'vitest';
 
-const { invokeMock, listenMock, openUrlMock } = vi.hoisted(() => ({
+const { invokeMock, listenMock, openUrlMock, fetchMock } = vi.hoisted(() => ({
   invokeMock: vi.fn(),
   listenMock: vi.fn(),
   openUrlMock: vi.fn(),
+  fetchMock: vi.fn(),
 }));
 
 vi.mock('@tauri-apps/api/core', () => ({
@@ -18,6 +19,8 @@ vi.mock('@tauri-apps/plugin-opener', () => ({
   openUrl: openUrlMock,
 }));
 
+vi.stubGlobal('fetch', fetchMock);
+
 import { loginWithTwitch } from './twitchAuth';
 
 describe('loginWithTwitch', () => {
@@ -26,6 +29,7 @@ describe('loginWithTwitch', () => {
     invokeMock.mockReset();
     listenMock.mockReset();
     openUrlMock.mockReset();
+    fetchMock.mockReset();
   });
 
   afterEach(() => {
@@ -33,7 +37,15 @@ describe('loginWithTwitch', () => {
   });
 
   it('returns the token when the redirect contains an auth code', async () => {
-    invokeMock.mockResolvedValueOnce(1234).mockResolvedValueOnce({ access_token: 'abc123' });
+    invokeMock
+      .mockResolvedValueOnce(1234)
+      .mockResolvedValueOnce({ access_token: 'abc123' })
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined);
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () => ({ data: [{ id: '1', login: 'demo', display_name: 'Demo' }] }),
+    });
 
     let redirectHandler: ((event: { payload: string }) => void) | undefined;
     listenMock.mockImplementation(

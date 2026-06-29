@@ -12,23 +12,27 @@ import TwitchIcon from '@/components/icons/twitch-icon';
 import { loginWithTwitch } from '@/lib/twitchAuth';
 import { useState } from 'react';
 import { Alert } from '@/components/ui/alert';
+import { useNavigate } from '@tanstack/react-router';
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
-  const handleLogin = () => {
-    void (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        await loginWithTwitch();
-      } catch (e) {
-        setError(String(e));
-      } finally {
-        setLoading(false);
-      }
-    })();
+  const handleLogin = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await loginWithTwitch();
+
+      await navigate({
+        to: '/',
+      });
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -53,7 +57,7 @@ const Login = () => {
             <Button
               variant="outline"
               className="w-full cursor-pointer"
-              onClick={handleLogin}
+              onClick={() => void handleLogin()}
               disabled={loading}
             >
               <TwitchIcon /> {loading ? 'Logging in...' : 'Login via Twitch'}
