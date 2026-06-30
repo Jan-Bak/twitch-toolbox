@@ -1,4 +1,4 @@
-import { listForms, loadForm, deleteForm, SavedLoopForm } from '@/lib/formStorage';
+import { listForms, deleteForm, SavedLoopForm } from '@/lib/formStorage';
 import SavedForm from './saved-form';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -16,6 +16,13 @@ const SavedLoops = () => {
       },
     },
   ]);
+
+  const onDelete = (saved: { name: string; data: SavedLoopForm }) => {
+    deleteForm(saved.name);
+    const list = listForms();
+    setSavedForms(list);
+    toast.success('Form deleted');
+  };
 
   return (
     <div className="flex flex-col ">
@@ -38,12 +45,7 @@ const SavedLoops = () => {
           //     toast.error('Failed to load form');
           //   }
           // }}
-          onDelete={async () => {
-            await deleteForm(s.name);
-            const list = await listForms();
-            setSavedForms(list);
-            toast.success('Form deleted');
-          }}
+          onDelete={() => void onDelete(s)}
         />
       ))}
     </div>

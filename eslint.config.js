@@ -9,7 +9,16 @@ import tsParser from '@typescript-eslint/parser';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'src-tauri', 'src/routeTree.gen.ts', 'components/ui'] },
+  {
+    ignores: [
+      'dist',
+      'node_modules',
+      'src-tauri',
+      'src/routeTree.gen.ts',
+      'components/ui',
+      'scripts',
+    ],
+  },
 
   js.configs.recommended,
 

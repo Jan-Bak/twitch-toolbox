@@ -1,5 +1,3 @@
-// Use dynamic imports for Tauri FS so TS type resolution doesn't fail during typecheck
-
 export type SavedLoopForm = {
   channel: string;
   message: string;
@@ -11,16 +9,13 @@ export type SavedLoopForm = {
 
 const KEY_PREFIX = 'twitch-toolbox:form:';
 
-export const saveForm = async (name: string, data: SavedLoopForm) => {
+export const saveForm = (name: string, data: SavedLoopForm) => {
   const key = `${KEY_PREFIX}${name}`;
-  try {
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch (e) {
-    throw e;
-  }
+
+  localStorage.setItem(key, JSON.stringify(data));
 };
 
-export const listForms = async (): Promise<Array<{ name: string; data: SavedLoopForm }>> => {
+export const listForms = (): Array<{ name: string; data: SavedLoopForm }> => {
   const results: Array<{ name: string; data: SavedLoopForm }> = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
@@ -39,7 +34,7 @@ export const listForms = async (): Promise<Array<{ name: string; data: SavedLoop
   return results;
 };
 
-export const loadForm = async (name: string): Promise<SavedLoopForm | null> => {
+export const loadForm = (name: string): SavedLoopForm | null => {
   const key = `${KEY_PREFIX}${name}`;
   try {
     const txt = localStorage.getItem(key);
@@ -50,7 +45,7 @@ export const loadForm = async (name: string): Promise<SavedLoopForm | null> => {
   }
 };
 
-export const deleteForm = async (name: string) => {
+export const deleteForm = (name: string) => {
   const key = `${KEY_PREFIX}${name}`;
   try {
     localStorage.removeItem(key);

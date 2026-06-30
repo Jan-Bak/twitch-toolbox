@@ -83,7 +83,7 @@ const LoopWriterForm = () => {
         void handleStop();
       }
     };
-  }, []);
+  }, [loopActive]);
 
   // useEffect(() => {
   //   void (async () => {
@@ -91,6 +91,30 @@ const LoopWriterForm = () => {
   //     setSavedForms(list);
   //   })();
   // }, []);
+
+  const onSaveClick = () => {
+    const values = getValues();
+    const defaultName = `${values.channel ?? 'form'}-${Date.now()}`;
+    const name = window.prompt('Save form as', defaultName)?.trim() || defaultName;
+    const payload: SavedLoopForm = {
+      channel: values.channel,
+      message: values.message,
+      hours: Number.parseInt(String(values.hours || 0), 10),
+      minutes: Number.parseInt(String(values.minutes || 0), 10),
+      seconds: Number.parseInt(String(values.seconds || 0), 10),
+      createdAt: new Date().toISOString(),
+    };
+
+    try {
+      saveForm(name, payload);
+      // const list = await listForms();
+      // setSavedForms(list);
+      toast.success('Form saved');
+    } catch (e) {
+      toast.error('Failed to save form');
+      console.error(e);
+    }
+  };
 
   return (
     <>
@@ -203,7 +227,7 @@ const LoopWriterForm = () => {
           <Button
             type="button"
             variant="destructive"
-            onClick={handleStop}
+            onClick={void handleStop}
             disabled={isSubmitting || !loopActive}
             className="cursor-pointer"
           >
@@ -216,32 +240,7 @@ const LoopWriterForm = () => {
       </form>
       <Separator className="my-2" />
       <div className="flex flex-col gap-2">
-        <Button
-          variant="secondary"
-          className="cursor-pointer"
-          onClick={async () => {
-            const values = getValues();
-            const defaultName = `${values.channel ?? 'form'}-${Date.now()}`;
-            const name = window.prompt('Save form as', defaultName)?.trim() || defaultName;
-            const payload: SavedLoopForm = {
-              channel: values.channel,
-              message: values.message,
-              hours: Number.parseInt(String(values.hours || 0), 10),
-              minutes: Number.parseInt(String(values.minutes || 0), 10),
-              seconds: Number.parseInt(String(values.seconds || 0), 10),
-              createdAt: new Date().toISOString(),
-            };
-
-            try {
-              await saveForm(name, payload);
-              // const list = await listForms();
-              // setSavedForms(list);
-              toast.success('Form saved');
-            } catch (e) {
-              toast.error('Failed to save form');
-            }
-          }}
-        >
+        <Button variant="secondary" className="cursor-pointer" onClick={void onSaveClick}>
           Save
         </Button>
       </div>

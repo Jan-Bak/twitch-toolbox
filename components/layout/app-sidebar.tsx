@@ -20,7 +20,7 @@ import { Link } from '@tanstack/react-router';
 import { ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import sidebarData from './sidebar-data';
-import type { SidebarData, SidebarItemData } from './sidebar-data';
+import type { SidebarItemData } from './sidebar-data';
 
 type SidebarItemRendererProps = {
   item: SidebarItemData;
@@ -97,10 +97,9 @@ const SidebarItemRenderer = ({ item, isExpanded, onToggle }: SidebarItemRenderer
 
 const AppSidebar = () => {
   const user = useUser((state) => state.user);
-  const sidebarConfig = sidebarData as SidebarData;
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>(() => {
     return Object.fromEntries(
-      sidebarConfig.groups.flatMap((group) =>
+      sidebarData.groups.flatMap((group) =>
         group.items.map((item) => [item.title, item.defaultExpanded ?? false])
       )
     );
@@ -131,7 +130,7 @@ const AppSidebar = () => {
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
-        {sidebarConfig.groups.map((group) => (
+        {sidebarData.groups.map((group) => (
           <SidebarGroup key={group.label} className="overflow-hidden whitespace-nowrap">
             <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">
               {group.label}
