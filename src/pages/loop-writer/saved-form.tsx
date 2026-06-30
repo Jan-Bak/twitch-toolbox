@@ -13,11 +13,14 @@ type SavedFormProps = {
   message: string;
   onLoad?: () => void;
   onDelete?: () => void;
+  status: 'stopped' | 'running' | 'error';
 };
 
-const SavedForm = ({ streamer, message, onLoad, onDelete }: SavedFormProps) => {
+const SavedForm = ({ streamer, message, onLoad, onDelete, status = 'running' }: SavedFormProps) => {
   return (
-    <Attachment className="w-32">
+    <Attachment
+      className={`w-full ${status === 'running' ? 'border-emerald-800' : status === 'error' ? 'border-rose-800' : ''}`}
+    >
       <AttachmentContent>
         <AttachmentTitle>{streamer}</AttachmentTitle>
         <AttachmentDescription>{message}</AttachmentDescription>

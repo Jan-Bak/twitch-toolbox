@@ -7,9 +7,8 @@ import { type SyntheticEvent, useEffect, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { scheduleLoopWriter, stopLoopWriter, resolveTwitchUserId } from '@/lib/twitchChatService';
-import { saveForm, listForms, loadForm, deleteForm, type SavedLoopForm } from '@/lib/formStorage';
+import { saveForm, type SavedLoopForm } from '@/lib/formStorage';
 import useUser from '@/stores/user';
-import SavedForm from './saved-form';
 
 type LoopWriterFormInputs = {
   channel: string;
@@ -25,12 +24,11 @@ const LoopWriterForm = () => {
     handleSubmit,
     formState: { errors },
     getValues,
-    setValue,
+    // setValue,
   } = useForm<LoopWriterFormInputs>();
   const { accessToken } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loopActive, setLoopActive] = useState(false);
-  const [savedForms, setSavedForms] = useState<Array<{ name: string; data: SavedLoopForm }>>([]);
 
   const onSubmit: SubmitHandler<LoopWriterFormInputs> = async (data) => {
     setIsSubmitting(true);
@@ -87,12 +85,12 @@ const LoopWriterForm = () => {
     };
   }, []);
 
-  useEffect(() => {
-    void (async () => {
-      const list = await listForms();
-      setSavedForms(list);
-    })();
-  }, []);
+  // useEffect(() => {
+  //   void (async () => {
+  //     const list = await listForms();
+  //     setSavedForms(list);
+  //   })();
+  // }, []);
 
   return (
     <>
@@ -236,8 +234,8 @@ const LoopWriterForm = () => {
 
             try {
               await saveForm(name, payload);
-              const list = await listForms();
-              setSavedForms(list);
+              // const list = await listForms();
+              // setSavedForms(list);
               toast.success('Form saved');
             } catch (e) {
               toast.error('Failed to save form');
@@ -246,36 +244,6 @@ const LoopWriterForm = () => {
         >
           Save
         </Button>
-        <div className="flex items-center gap-2">
-          <div className="flex gap-2 flex-wrap">
-            {savedForms.map((s) => (
-              <SavedForm
-                key={s.name}
-                streamer={s.data.channel}
-                message={s.data.message}
-                onLoad={async () => {
-                  const loaded = await loadForm(s.name);
-                  if (loaded) {
-                    setValue('channel', loaded.channel);
-                    setValue('message', loaded.message);
-                    setValue('hours', loaded.hours);
-                    setValue('minutes', loaded.minutes);
-                    setValue('seconds', loaded.seconds);
-                    toast.success('Form loaded');
-                  } else {
-                    toast.error('Failed to load form');
-                  }
-                }}
-                onDelete={async () => {
-                  await deleteForm(s.name);
-                  const list = await listForms();
-                  setSavedForms(list);
-                  toast.success('Form deleted');
-                }}
-              />
-            ))}
-          </div>
-        </div>
       </div>
     </>
   );

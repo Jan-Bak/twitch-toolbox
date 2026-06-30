@@ -1,3 +1,4 @@
+import SavedLoops from '@/src/pages/loop-writer/saved';
 import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/_auth/loop-writer/saved')({
@@ -5,5 +6,9 @@ export const Route = createFileRoute('/_auth/loop-writer/saved')({
 });
 
 function RouteComponent() {
-  return <div>Hello "/_auth/loop-writer/saved"!</div>;
+  return (
+    <>
+      <SavedLoops />
+    </>
+  );
 }
