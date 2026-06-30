@@ -39,7 +39,16 @@ struct TwitchChatMessageRequest {
 }
 
 fn twitch_client_id() -> Result<String, String> {
-    Ok(env!("TWITCH_CLIENT_ID").to_string())
+    option_env!("TWITCH_CLIENT_ID")
+        .or(option_env!("VITE_TWITCH_CLIENT_ID"))
+        .map(str::to_owned)
+        .ok_or_else(|| "TWITCH_CLIENT_ID is not set".to_string())
+}
+
+fn twitch_client_secret() -> Result<String, String> {
+    option_env!("TWITCH_CLIENT_SECRET")
+        .map(str::to_owned)
+        .ok_or_else(|| "TWITCH_CLIENT_SECRET is not set".to_string())
 }
 
 fn emit_rust_error(window: &Window, title: &str, description: Option<&str>) {
@@ -196,7 +205,7 @@ async fn start_oauth_server(window: Window) -> Result<u16, String> {
 async fn exchange_twitch_code(window: Window, code: String, port: u16) -> Result<TwitchTokenResponse, String> {
     let client = reqwest::Client::new();
     let client_id = twitch_client_id()?;
-    let client_secret = env!("TWITCH_CLIENT_SECRET").to_string();
+    let client_secret = twitch_client_secret()?;
 
     let params = [
         ("client_id", client_id.as_str()),
