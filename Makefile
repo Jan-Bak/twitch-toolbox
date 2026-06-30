@@ -1,10 +1,22 @@
-.PHONY: help release
+.PHONY: help release retag
 
 .DEFAULT_GOAL := help
 
 help: ## Show this menu
 	@echo "Available commands:"
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z0-9_-]+:.*?## / {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+retag: ## Delete and recreate a tag to re-trigger release (usage: make retag VERSION=1.0.0)
+ifndef VERSION
+	$(error VERSION is not set. Usage: make retag VERSION=1.0.0)
+endif
+	@echo "Deleting tag v$(VERSION) locally and remotely..."
+	-git tag -d v$(VERSION)
+	-git push origin :refs/tags/v$(VERSION)
+	@echo "Recreating tag v$(VERSION) on current HEAD..."
+	git tag v$(VERSION)
+	git push origin v$(VERSION)
+	@echo "Re-pushed tag v$(VERSION) — check Actions tab and delete any leftover draft release manually if needed."
 
 release: ## Bump version, tag and push to trigger release (usage: make release VERSION=0.2.0)
 ifndef VERSION

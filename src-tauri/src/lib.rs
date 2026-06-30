@@ -39,9 +39,7 @@ struct TwitchChatMessageRequest {
 }
 
 fn twitch_client_id() -> Result<String, String> {
-    env::var("TWITCH_CLIENT_ID")
-        .or_else(|_| env::var("VITE_TWITCH_CLIENT_ID"))
-        .map_err(|_| "TWITCH_CLIENT_ID is not set".to_string())
+    Ok(env!("TWITCH_CLIENT_ID").to_string())
 }
 
 fn emit_rust_error(window: &Window, title: &str, description: Option<&str>) {
@@ -183,7 +181,7 @@ async fn start_oauth_server(window: Window) -> Result<u16, String> {
     let config = tauri_plugin_oauth::OauthConfig {
         ports: Some(vec![3333, 3334, 3335]),
         response: Some(
-            "<html><body><h2>User authenticated successfully. You can close this tab.</h2><script>setTimeout(() => window.close(), 300);</script></body></html>".into(),
+            "<html><body><h2>User authenticated successfully. You can close this tab.</h2><script>setTimeout(() => window.close(), 1000);</script></body></html>".into(),
         ),
     };
 
@@ -198,8 +196,7 @@ async fn start_oauth_server(window: Window) -> Result<u16, String> {
 async fn exchange_twitch_code(window: Window, code: String, port: u16) -> Result<TwitchTokenResponse, String> {
     let client = reqwest::Client::new();
     let client_id = twitch_client_id()?;
-    let client_secret = env::var("TWITCH_CLIENT_SECRET")
-        .map_err(|_| "TWITCH_CLIENT_SECRET is not set".to_string())?;
+    let client_secret = env!("TWITCH_CLIENT_SECRET").to_string();
 
     let params = [
         ("client_id", client_id.as_str()),
